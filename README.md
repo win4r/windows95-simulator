@@ -25,6 +25,15 @@ A high-fidelity Windows 95 desktop environment simulator built with pure HTML, C
 - Auto-save to localStorage
 - Classic Windows Notepad interface
 
+#### 🔢 Calculator
+- Complete Win95-style calculator with authentic button layout
+- Basic arithmetic operations (+, -, ×, ÷)
+- Memory functions (MC, MR, M+, M-)
+- Advanced functions (√, %, 1/x, ±)
+- Scientific mode with trigonometric and logarithmic functions
+- Full keyboard input support
+- Toggle between standard and scientific modes
+
 #### 💻 My Computer
 - Browse system drives and folders
 - Classic folder view with icons

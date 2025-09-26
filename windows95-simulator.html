@@ -354,6 +354,119 @@
             color: white;
         }
 
+        /* Calculator */
+        .calculator {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+        }
+
+        .calculator-display {
+            width: 100%;
+            height: 40px;
+            background: white;
+            border: 2px inset var(--bg-color);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: black;
+            overflow: hidden;
+        }
+
+        .calculator-memory {
+            font-size: 10px;
+            color: var(--window-text);
+            margin-bottom: 4px;
+            height: 12px;
+        }
+
+        .calculator-buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            flex: 1;
+        }
+
+        .calc-button {
+            background: var(--button-face);
+            border: 2px outset var(--button-face);
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 30px;
+            color: var(--window-text);
+            user-select: none;
+        }
+
+        .calc-button:active {
+            border: 2px inset var(--button-face);
+        }
+
+        .calc-button:hover {
+            background: var(--button-highlight);
+        }
+
+        .calc-button.operator {
+            background: #dfdfdf;
+        }
+
+        .calc-button.equals {
+            background: #0080ff;
+            color: white;
+        }
+
+        .calc-button.memory {
+            font-size: 10px;
+        }
+
+        .calc-button.wide {
+            grid-column: span 2;
+        }
+
+        .calc-button.disabled {
+            color: #808080;
+            cursor: default;
+        }
+
+        .calc-button.disabled:hover {
+            background: var(--button-face);
+        }
+
+        .calculator-scientific {
+            display: none;
+        }
+
+        .calculator.scientific .calculator-scientific {
+            display: block;
+        }
+
+        .calculator.scientific .calculator-buttons {
+            grid-template-columns: repeat(8, 1fr);
+        }
+
+        .scientific-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .scientific-buttons .calc-button {
+            font-size: 10px;
+            min-height: 25px;
+        }
+
         /* Utilities */
         .inset-border {
             border: 2px inset var(--bg-color);
@@ -382,6 +495,11 @@
             <div class="icon">📝</div>
             <div class="label">Notepad</div>
         </div>
+        
+        <div class="desktop-icon" style="top: 260px; left: 20px;" data-app="calculator">
+            <div class="icon">🔢</div>
+            <div class="label">Calculator</div>
+        </div>
     </div>
 
     <!-- Taskbar -->
@@ -397,6 +515,7 @@
         <div class="start-menu-header">Windows 95</div>
         <div class="start-menu-items">
             <div class="start-menu-item" data-app="notepad">📝 Notepad</div>
+            <div class="start-menu-item" data-app="calculator">🔢 Calculator</div>
             <div class="start-menu-item" data-app="my-computer">💻 My Computer</div>
             <div class="start-menu-item" data-app="cmd">⚫ MS-DOS Prompt</div>
             <div class="start-menu-item">⚙️ Settings</div>
@@ -526,6 +645,9 @@
                     case 'notepad':
                         windowConfig = this.createNotepadWindow();
                         break;
+                    case 'calculator':
+                        windowConfig = this.createCalculatorWindow();
+                        break;
                     case 'my-computer':
                         windowConfig = this.createMyComputerWindow();
                         break;
@@ -628,6 +750,74 @@
                         textarea.addEventListener('input', () => {
                             localStorage.setItem('notepad-content', textarea.value);
                         });
+                    }
+                };
+            }
+
+            createCalculatorWindow() {
+                const calculatorHTML = `
+                    <div class="calculator" id="calculator">
+                        <div class="calculator-memory" id="calcMemory"></div>
+                        <div class="calculator-display" id="calcDisplay">0</div>
+                        <div class="calculator-scientific" id="calcScientific">
+                            <div class="scientific-buttons">
+                                <button class="calc-button" data-action="sin">sin</button>
+                                <button class="calc-button" data-action="cos">cos</button>
+                                <button class="calc-button" data-action="tan">tan</button>
+                                <button class="calc-button" data-action="log">log</button>
+                                <button class="calc-button" data-action="ln">ln</button>
+                                <button class="calc-button" data-action="exp">exp</button>
+                                <button class="calc-button" data-action="sqrt">√</button>
+                                <button class="calc-button" data-action="power">x^y</button>
+                                <button class="calc-button" data-action="pi">π</button>
+                            </div>
+                        </div>
+                        <div class="calculator-buttons">
+                            <button class="calc-button memory" data-action="mc">MC</button>
+                            <button class="calc-button memory" data-action="mr">MR</button>
+                            <button class="calc-button memory" data-action="mplus">M+</button>
+                            <button class="calc-button memory" data-action="mminus">M-</button>
+                            <button class="calc-button" data-action="view">View</button>
+                            
+                            <button class="calc-button" data-action="backspace">←</button>
+                            <button class="calc-button" data-action="ce">CE</button>
+                            <button class="calc-button" data-action="clear">C</button>
+                            <button class="calc-button operator" data-action="negate">±</button>
+                            <button class="calc-button operator" data-action="sqrt2">√</button>
+                            
+                            <button class="calc-button" data-number="7">7</button>
+                            <button class="calc-button" data-number="8">8</button>
+                            <button class="calc-button" data-number="9">9</button>
+                            <button class="calc-button operator" data-action="divide">÷</button>
+                            <button class="calc-button operator" data-action="percent">%</button>
+                            
+                            <button class="calc-button" data-number="4">4</button>
+                            <button class="calc-button" data-number="5">5</button>
+                            <button class="calc-button" data-number="6">6</button>
+                            <button class="calc-button operator" data-action="multiply">×</button>
+                            <button class="calc-button operator" data-action="reciprocal">1/x</button>
+                            
+                            <button class="calc-button" data-number="1">1</button>
+                            <button class="calc-button" data-number="2">2</button>
+                            <button class="calc-button" data-number="3">3</button>
+                            <button class="calc-button operator" data-action="subtract">-</button>
+                            <button class="calc-button equals" data-action="equals" style="grid-row: span 2;">=</button>
+                            
+                            <button class="calc-button wide" data-number="0">0</button>
+                            <button class="calc-button" data-action="decimal">.</button>
+                            <button class="calc-button operator" data-action="add">+</button>
+                        </div>
+                    </div>
+                `;
+
+                return {
+                    title: 'Calculator',
+                    appName: 'calculator',
+                    width: 280,
+                    height: 350,
+                    content: calculatorHTML,
+                    init: (window) => {
+                        this.initCalculator(window);
                     }
                 };
             }
@@ -888,6 +1078,314 @@
                 
                 window.remove();
                 this.activeWindow = null;
+            }
+
+            initCalculator(window) {
+                const calculator = {
+                    display: window.querySelector('#calcDisplay'),
+                    memory: window.querySelector('#calcMemory'),
+                    scientificPanel: window.querySelector('#calcScientific'),
+                    currentValue: '0',
+                    previousValue: null,
+                    operation: null,
+                    waitingForOperand: false,
+                    memoryValue: 0,
+                    isScientific: false
+                };
+
+                // Update display
+                const updateDisplay = () => {
+                    calculator.display.textContent = calculator.currentValue;
+                    calculator.memory.textContent = calculator.memoryValue !== 0 ? 'M' : '';
+                };
+
+                // Input number
+                const inputNumber = (number) => {
+                    if (calculator.waitingForOperand) {
+                        calculator.currentValue = number;
+                        calculator.waitingForOperand = false;
+                    } else {
+                        calculator.currentValue = calculator.currentValue === '0' ? number : calculator.currentValue + number;
+                    }
+                    updateDisplay();
+                };
+
+                // Input decimal
+                const inputDecimal = () => {
+                    if (calculator.waitingForOperand) {
+                        calculator.currentValue = '0.';
+                        calculator.waitingForOperand = false;
+                    } else if (calculator.currentValue.indexOf('.') === -1) {
+                        calculator.currentValue += '.';
+                    }
+                    updateDisplay();
+                };
+
+                // Clear functions
+                const clear = () => {
+                    calculator.currentValue = '0';
+                    calculator.previousValue = null;
+                    calculator.operation = null;
+                    calculator.waitingForOperand = false;
+                    updateDisplay();
+                };
+
+                const clearEntry = () => {
+                    calculator.currentValue = '0';
+                    updateDisplay();
+                };
+
+                const backspace = () => {
+                    if (calculator.currentValue.length > 1) {
+                        calculator.currentValue = calculator.currentValue.slice(0, -1);
+                    } else {
+                        calculator.currentValue = '0';
+                    }
+                    updateDisplay();
+                };
+
+                // Mathematical operations
+                const performOperation = (nextOperation) => {
+                    const inputValue = parseFloat(calculator.currentValue);
+
+                    if (calculator.previousValue === null) {
+                        calculator.previousValue = inputValue;
+                    } else if (calculator.operation) {
+                        const currentValue = calculator.previousValue || 0;
+                        let result;
+
+                        switch (calculator.operation) {
+                            case 'add':
+                                result = currentValue + inputValue;
+                                break;
+                            case 'subtract':
+                                result = currentValue - inputValue;
+                                break;
+                            case 'multiply':
+                                result = currentValue * inputValue;
+                                break;
+                            case 'divide':
+                                result = inputValue !== 0 ? currentValue / inputValue : 0;
+                                break;
+                            case 'power':
+                                result = Math.pow(currentValue, inputValue);
+                                break;
+                            default:
+                                return;
+                        }
+
+                        calculator.currentValue = String(result);
+                        calculator.previousValue = result;
+                    }
+
+                    calculator.waitingForOperand = true;
+                    calculator.operation = nextOperation;
+                    updateDisplay();
+                };
+
+                // Memory functions
+                const memoryClear = () => {
+                    calculator.memoryValue = 0;
+                    updateDisplay();
+                };
+
+                const memoryRecall = () => {
+                    calculator.currentValue = String(calculator.memoryValue);
+                    calculator.waitingForOperand = true;
+                    updateDisplay();
+                };
+
+                const memoryAdd = () => {
+                    calculator.memoryValue += parseFloat(calculator.currentValue) || 0;
+                    calculator.waitingForOperand = true;
+                    updateDisplay();
+                };
+
+                const memorySubtract = () => {
+                    calculator.memoryValue -= parseFloat(calculator.currentValue) || 0;
+                    calculator.waitingForOperand = true;
+                    updateDisplay();
+                };
+
+                // Scientific functions
+                const performScientificOperation = (operation) => {
+                    const value = parseFloat(calculator.currentValue);
+                    let result;
+
+                    switch (operation) {
+                        case 'sin':
+                            result = Math.sin(value * Math.PI / 180);
+                            break;
+                        case 'cos':
+                            result = Math.cos(value * Math.PI / 180);
+                            break;
+                        case 'tan':
+                            result = Math.tan(value * Math.PI / 180);
+                            break;
+                        case 'log':
+                            result = Math.log10(value);
+                            break;
+                        case 'ln':
+                            result = Math.log(value);
+                            break;
+                        case 'exp':
+                            result = Math.exp(value);
+                            break;
+                        case 'sqrt':
+                            result = Math.sqrt(value);
+                            break;
+                        case 'pi':
+                            result = Math.PI;
+                            break;
+                        case 'sqrt2':
+                            result = Math.sqrt(value);
+                            break;
+                        case 'reciprocal':
+                            result = value !== 0 ? 1 / value : 0;
+                            break;
+                        case 'percent':
+                            result = value / 100;
+                            break;
+                        case 'negate':
+                            result = -value;
+                            break;
+                        default:
+                            return;
+                    }
+
+                    calculator.currentValue = String(result);
+                    calculator.waitingForOperand = true;
+                    updateDisplay();
+                };
+
+                // Toggle scientific mode
+                const toggleScientific = () => {
+                    calculator.isScientific = !calculator.isScientific;
+                    const calcElement = window.querySelector('#calculator');
+                    const windowElement = window;
+                    
+                    if (calculator.isScientific) {
+                        calcElement.classList.add('scientific');
+                        windowElement.style.width = '450px';
+                        windowElement.style.height = '400px';
+                    } else {
+                        calcElement.classList.remove('scientific');
+                        windowElement.style.width = '280px';
+                        windowElement.style.height = '350px';
+                    }
+                };
+
+                // Event listeners
+                window.addEventListener('click', (e) => {
+                    const button = e.target.closest('.calc-button');
+                    if (!button) return;
+
+                    const action = button.dataset.action;
+                    const number = button.dataset.number;
+
+                    if (number !== undefined) {
+                        inputNumber(number);
+                    } else if (action) {
+                        switch (action) {
+                            case 'clear':
+                                clear();
+                                break;
+                            case 'ce':
+                                clearEntry();
+                                break;
+                            case 'backspace':
+                                backspace();
+                                break;
+                            case 'decimal':
+                                inputDecimal();
+                                break;
+                            case 'equals':
+                                performOperation(null);
+                                calculator.operation = null;
+                                calculator.previousValue = null;
+                                calculator.waitingForOperand = true;
+                                break;
+                            case 'add':
+                            case 'subtract':
+                            case 'multiply':
+                            case 'divide':
+                            case 'power':
+                                performOperation(action);
+                                break;
+                            case 'mc':
+                                memoryClear();
+                                break;
+                            case 'mr':
+                                memoryRecall();
+                                break;
+                            case 'mplus':
+                                memoryAdd();
+                                break;
+                            case 'mminus':
+                                memorySubtract();
+                                break;
+                            case 'view':
+                                toggleScientific();
+                                break;
+                            default:
+                                performScientificOperation(action);
+                                break;
+                        }
+                    }
+                });
+
+                // Keyboard support
+                document.addEventListener('keydown', (e) => {
+                    // Only handle keyboard events when calculator window is active
+                    if (this.activeWindow !== window) return;
+
+                    const key = e.key;
+                    e.preventDefault();
+
+                    if (key >= '0' && key <= '9') {
+                        inputNumber(key);
+                    } else {
+                        switch (key) {
+                            case '.':
+                                inputDecimal();
+                                break;
+                            case '+':
+                                performOperation('add');
+                                break;
+                            case '-':
+                                performOperation('subtract');
+                                break;
+                            case '*':
+                                performOperation('multiply');
+                                break;
+                            case '/':
+                                performOperation('divide');
+                                break;
+                            case 'Enter':
+                            case '=':
+                                performOperation(null);
+                                calculator.operation = null;
+                                calculator.previousValue = null;
+                                calculator.waitingForOperand = true;
+                                break;
+                            case 'Escape':
+                                clear();
+                                break;
+                            case 'Backspace':
+                                backspace();
+                                break;
+                            case 'Delete':
+                                clearEntry();
+                                break;
+                        }
+                    }
+                });
+
+                // Initialize display
+                updateDisplay();
+
+                // Store calculator instance for cleanup if needed
+                window._calculator = calculator;
             }
         }
 
