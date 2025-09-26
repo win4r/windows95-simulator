@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 95 Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'MS Sans Serif', sans-serif;
+            font-size: 11px;
+            background: #008080;
+            overflow: hidden;
+            height: 100vh;
+            cursor: default;
+            user-select: none;
+        }
+
+        /* Classic Win95 Colors */
+        :root {
+            --bg-color: #c0c0c0;
+            --dark-shadow: #808080;
+            --light-shadow: #ffffff;
+            --button-face: #c0c0c0;
+            --button-highlight: #dfdfdf;
+            --button-shadow: #404040;
+            --active-caption: #0a246a;
+            --inactive-caption: #808080;
+            --caption-text: #ffffff;
+            --window-text: #000000;
+        }
+
+        /* Desktop */
+        .desktop {
+            width: 100%;
+            height: calc(100vh - 30px);
+            background: #008080;
+            position: relative;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="1" height="1" fill="%23008080"/><rect x="1" y="1" width="1" height="1" fill="%23008080"/></svg>');
+        }
+
+        /* Desktop Icons */
+        .desktop-icon {
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 0;
+        }
+
+        .desktop-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px dotted #ffffff;
+        }
+
+        .desktop-icon.selected {
+            background: rgba(0, 0, 128, 0.3);
+            border: 1px dotted #ffffff;
+        }
+
+        .desktop-icon .icon {
+            font-size: 32px;
+            margin-bottom: 2px;
+        }
+
+        .desktop-icon .label {
+            color: white;
+            text-align: center;
+            font-size: 11px;
+            text-shadow: 1px 1px 1px #000000;
+            word-wrap: break-word;
+            line-height: 1.1;
+        }
+
+        /* Taskbar */
+        .taskbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: var(--bg-color);
+            border-top: 2px outset var(--bg-color);
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .start-button {
+            height: 24px;
+            padding: 0 8px;
+            margin: 2px;
+            background: var(--button-face);
+            border: 2px outset var(--button-face);
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .start-button:active,
+        .start-button.pressed {
+            border: 2px inset var(--button-face);
+        }
+
+        .start-button::before {
+            content: "🏁";
+            margin-right: 4px;
+        }
+
+        .taskbar-separator {
+            width: 2px;
+            height: 20px;
+            background: var(--dark-shadow);
+            border-right: 1px solid var(--light-shadow);
+            margin: 0 2px;
+        }
+
+        .taskbar-buttons {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 2px;
+        }
+
+        .taskbar-button {
+            height: 24px;
+            padding: 0 8px;
+            margin-right: 2px;
+            background: var(--button-face);
+            border: 2px outset var(--button-face);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .taskbar-button.active {
+            border: 2px inset var(--button-face);
+        }
+
+        .taskbar-time {
+            padding: 0 8px;
+            border: 1px inset var(--bg-color);
+            margin-right: 2px;
+            font-size: 11px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* Windows */
+        .window {
+            position: absolute;
+            background: var(--bg-color);
+            border: 2px outset var(--bg-color);
+            min-width: 200px;
+            min-height: 100px;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .window.active {
+            z-index: 100;
+        }
+
+        .window-titlebar {
+            height: 18px;
+            background: var(--inactive-caption);
+            color: var(--caption-text);
+            display: flex;
+            align-items: center;
+            cursor: move;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .window.active .window-titlebar {
+            background: var(--active-caption);
+        }
+
+        .window-title {
+            flex: 1;
+            padding: 2px 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .window-controls {
+            display: flex;
+        }
+
+        .window-control {
+            width: 16px;
+            height: 14px;
+            background: var(--button-face);
+            border: 1px outset var(--button-face);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: black;
+        }
+
+        .window-control:active {
+            border: 1px inset var(--button-face);
+        }
+
+        .window-content {
+            padding: 4px;
+            height: calc(100% - 18px);
+            overflow: auto;
+            background: white;
+        }
+
+        /* Start Menu */
+        .start-menu {
+            position: fixed;
+            bottom: 30px;
+            left: 2px;
+            width: 200px;
+            background: var(--bg-color);
+            border: 2px outset var(--bg-color);
+            display: none;
+            z-index: 2000;
+        }
+
+        .start-menu.show {
+            display: block;
+        }
+
+        .start-menu-header {
+            background: linear-gradient(90deg, #0a246a 0%, #a6caf0 100%);
+            color: white;
+            padding: 4px 8px;
+            font-weight: bold;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .start-menu-items {
+            padding: 2px;
+        }
+
+        .start-menu-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .start-menu-item:hover {
+            background: var(--active-caption);
+            color: white;
+        }
+
+        .start-menu-item::before {
+            margin-right: 8px;
+            width: 16px;
+        }
+
+        /* Notepad */
+        .notepad-content {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px;
+            resize: none;
+            background: white;
+        }
+
+        /* My Computer */
+        .folder-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .folder-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 4px;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+
+        .folder-item:hover {
+            background: #e0e0e0;
+        }
+
+        .folder-item .icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .folder-item .label {
+            font-size: 11px;
+            text-align: center;
+            word-wrap: break-word;
+        }
+
+        /* Command Prompt */
+        .cmd-content {
+            background: black;
+            color: white;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .cmd-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            font-family: inherit;
+            font-size: inherit;
+            width: 100%;
+        }
+
+        .cmd-line {
+            margin-bottom: 2px;
+        }
+
+        .cmd-prompt {
+            color: white;
+        }
+
+        /* Utilities */
+        .inset-border {
+            border: 2px inset var(--bg-color);
+        }
+
+        .outset-border {
+            border: 2px outset var(--bg-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Desktop -->
+    <div class="desktop" id="desktop">
+        <!-- Desktop Icons -->
+        <div class="desktop-icon" style="top: 20px; left: 20px;" data-app="my-computer">
+            <div class="icon">💻</div>
+            <div class="label">My Computer</div>
+        </div>
+        
+        <div class="desktop-icon" style="top: 100px; left: 20px;" data-app="recycle-bin">
+            <div class="icon">🗑️</div>
+            <div class="label">Recycle Bin</div>
+        </div>
+        
+        <div class="desktop-icon" style="top: 180px; left: 20px;" data-app="notepad">
+            <div class="icon">📝</div>
+            <div class="label">Notepad</div>
+        </div>
+    </div>
+
+    <!-- Taskbar -->
+    <div class="taskbar">
+        <div class="start-button" id="startButton">Start</div>
+        <div class="taskbar-separator"></div>
+        <div class="taskbar-buttons" id="taskbarButtons"></div>
+        <div class="taskbar-time" id="taskbarTime"></div>
+    </div>
+
+    <!-- Start Menu -->
+    <div class="start-menu" id="startMenu">
+        <div class="start-menu-header">Windows 95</div>
+        <div class="start-menu-items">
+            <div class="start-menu-item" data-app="notepad">📝 Notepad</div>
+            <div class="start-menu-item" data-app="my-computer">💻 My Computer</div>
+            <div class="start-menu-item" data-app="cmd">⚫ MS-DOS Prompt</div>
+            <div class="start-menu-item">⚙️ Settings</div>
+            <div class="start-menu-item">❓ Help</div>
+            <div class="start-menu-item">🔌 Shut Down...</div>
+        </div>
+    </div>
+
+    <script>
+        // Window Manager Class
+        class WindowManager {
+            constructor() {
+                this.windows = new Map();
+                this.zIndex = 100;
+                this.activeWindow = null;
+                this.draggedWindow = null;
+                this.dragOffset = { x: 0, y: 0 };
+                
+                this.init();
+            }
+
+            init() {
+                // Bind global events
+                document.addEventListener('mousedown', this.handleGlobalMouseDown.bind(this));
+                document.addEventListener('mousemove', this.handleGlobalMouseMove.bind(this));
+                document.addEventListener('mouseup', this.handleGlobalMouseUp.bind(this));
+                
+                // Update time
+                this.updateTime();
+                setInterval(() => this.updateTime(), 1000);
+                
+                // Initialize apps
+                this.initializeApps();
+            }
+
+            updateTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false 
+                });
+                document.getElementById('taskbarTime').textContent = timeString;
+            }
+
+            initializeApps() {
+                // Desktop icons
+                const desktopIcons = document.querySelectorAll('.desktop-icon');
+                desktopIcons.forEach(icon => {
+                    icon.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        const appName = icon.dataset.app;
+                        this.openApp(appName);
+                    });
+                    
+                    icon.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.selectDesktopIcon(icon);
+                    });
+                });
+
+                // Start button
+                const startButton = document.getElementById('startButton');
+                const startMenu = document.getElementById('startMenu');
+                
+                startButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleStartMenu();
+                });
+
+                // Start menu items
+                const startMenuItems = document.querySelectorAll('.start-menu-item[data-app]');
+                startMenuItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        const appName = item.dataset.app;
+                        this.openApp(appName);
+                        this.hideStartMenu();
+                    });
+                });
+
+                // Click outside to close start menu
+                document.addEventListener('click', (e) => {
+                    if (!startMenu.contains(e.target) && !startButton.contains(e.target)) {
+                        this.hideStartMenu();
+                    }
+                });
+            }
+
+            selectDesktopIcon(icon) {
+                // Deselect all icons
+                document.querySelectorAll('.desktop-icon.selected')
+                    .forEach(i => i.classList.remove('selected'));
+                
+                // Select clicked icon
+                icon.classList.add('selected');
+            }
+
+            toggleStartMenu() {
+                const startMenu = document.getElementById('startMenu');
+                const startButton = document.getElementById('startButton');
+                
+                if (startMenu.classList.contains('show')) {
+                    this.hideStartMenu();
+                } else {
+                    startMenu.classList.add('show');
+                    startButton.classList.add('pressed');
+                }
+            }
+
+            hideStartMenu() {
+                const startMenu = document.getElementById('startMenu');
+                const startButton = document.getElementById('startButton');
+                
+                startMenu.classList.remove('show');
+                startButton.classList.remove('pressed');
+            }
+
+            openApp(appName) {
+                // Check if app is already open
+                if (this.windows.has(appName)) {
+                    this.activateWindow(this.windows.get(appName));
+                    return;
+                }
+
+                let windowConfig;
+                switch (appName) {
+                    case 'notepad':
+                        windowConfig = this.createNotepadWindow();
+                        break;
+                    case 'my-computer':
+                        windowConfig = this.createMyComputerWindow();
+                        break;
+                    case 'cmd':
+                        windowConfig = this.createCmdWindow();
+                        break;
+                    default:
+                        console.log(`App ${appName} not implemented`);
+                        return;
+                }
+
+                const window = this.createWindow(windowConfig);
+                this.windows.set(appName, window);
+                this.activateWindow(window);
+            }
+
+            createWindow(config) {
+                const window = document.createElement('div');
+                window.className = 'window';
+                window.style.left = (50 + this.windows.size * 20) + 'px';
+                window.style.top = (50 + this.windows.size * 20) + 'px';
+                window.style.width = config.width + 'px';
+                window.style.height = config.height + 'px';
+                window.style.zIndex = ++this.zIndex;
+
+                // Titlebar
+                const titlebar = document.createElement('div');
+                titlebar.className = 'window-titlebar';
+                
+                const title = document.createElement('div');
+                title.className = 'window-title';
+                title.textContent = config.title;
+                titlebar.appendChild(title);
+
+                const controls = document.createElement('div');
+                controls.className = 'window-controls';
+
+                // Minimize button
+                const minimizeBtn = document.createElement('div');
+                minimizeBtn.className = 'window-control';
+                minimizeBtn.innerHTML = '_';
+                minimizeBtn.addEventListener('click', () => this.minimizeWindow(window));
+                controls.appendChild(minimizeBtn);
+
+                // Maximize button
+                const maximizeBtn = document.createElement('div');
+                maximizeBtn.className = 'window-control';
+                maximizeBtn.innerHTML = '▢';
+                maximizeBtn.addEventListener('click', () => this.maximizeWindow(window));
+                controls.appendChild(maximizeBtn);
+
+                // Close button
+                const closeBtn = document.createElement('div');
+                closeBtn.className = 'window-control';
+                closeBtn.innerHTML = '×';
+                closeBtn.addEventListener('click', () => this.closeWindow(window));
+                controls.appendChild(closeBtn);
+
+                titlebar.appendChild(controls);
+                window.appendChild(titlebar);
+
+                // Content
+                const content = document.createElement('div');
+                content.className = 'window-content';
+                content.innerHTML = config.content;
+                window.appendChild(content);
+
+                // Add to desktop
+                document.getElementById('desktop').appendChild(window);
+
+                // Add to taskbar
+                this.addTaskbarButton(window, config.title, config.appName);
+
+                // Make draggable
+                this.makeDraggable(window, titlebar);
+
+                // Initialize app-specific functionality
+                if (config.init) {
+                    config.init(window);
+                }
+
+                return window;
+            }
+
+            createNotepadWindow() {
+                return {
+                    title: 'Untitled - Notepad',
+                    appName: 'notepad',
+                    width: 400,
+                    height: 300,
+                    content: '<textarea class="notepad-content" placeholder="Type your text here..."></textarea>',
+                    init: (window) => {
+                        const textarea = window.querySelector('.notepad-content');
+                        
+                        // Load saved content
+                        const savedContent = localStorage.getItem('notepad-content') || '';
+                        textarea.value = savedContent;
+                        
+                        // Auto-save
+                        textarea.addEventListener('input', () => {
+                            localStorage.setItem('notepad-content', textarea.value);
+                        });
+                    }
+                };
+            }
+
+            createMyComputerWindow() {
+                const folders = [
+                    { icon: '💾', name: '3½ Floppy (A:)' },
+                    { icon: '💿', name: 'CD-ROM (D:)' },
+                    { icon: '🖥️', name: 'Hard Disk (C:)' },
+                    { icon: '🗂️', name: 'Control Panel' },
+                    { icon: '📁', name: 'My Documents' },
+                    { icon: '🖨️', name: 'Printers' }
+                ];
+
+                const folderHTML = folders.map(folder => 
+                    `<div class="folder-item">
+                        <div class="icon">${folder.icon}</div>
+                        <div class="label">${folder.name}</div>
+                    </div>`
+                ).join('');
+
+                return {
+                    title: 'My Computer',
+                    appName: 'my-computer',
+                    width: 480,
+                    height: 360,
+                    content: `<div class="folder-view">${folderHTML}</div>`
+                };
+            }
+
+            createCmdWindow() {
+                return {
+                    title: 'MS-DOS Prompt',
+                    appName: 'cmd',
+                    width: 500,
+                    height: 300,
+                    content: `
+                        <div class="cmd-content">
+                            <div class="cmd-line">Microsoft Windows 95</div>
+                            <div class="cmd-line">(C) Copyright Microsoft Corp 1981-1995</div>
+                            <div class="cmd-line"></div>
+                            <div class="cmd-line"><span class="cmd-prompt">C:\\WINDOWS></span><input type="text" class="cmd-input" /></div>
+                        </div>
+                    `,
+                    init: (window) => {
+                        const cmdContent = window.querySelector('.cmd-content');
+                        const cmdInput = window.querySelector('.cmd-input');
+                        
+                        cmdInput.focus();
+                        
+                        cmdInput.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                const command = cmdInput.value.trim();
+                                this.executeCommand(cmdContent, command);
+                                cmdInput.value = '';
+                            }
+                        });
+                    }
+                };
+            }
+
+            executeCommand(cmdContent, command) {
+                const commandLine = cmdContent.querySelector('.cmd-line:last-child');
+                commandLine.innerHTML = `<span class="cmd-prompt">C:\\WINDOWS></span>${command}`;
+                
+                let output = '';
+                const lowerCommand = command.toLowerCase();
+                
+                if (lowerCommand === 'dir') {
+                    output = `Directory of C:\\WINDOWS\n\n` +
+                            `SYSTEM       <DIR>     01-01-95  12:00a\n` +
+                            `TEMP         <DIR>     01-01-95  12:00a\n` +
+                            `NOTEPAD  EXE    65,024  01-01-95  12:00a\n` +
+                            `WIN      COM     9,349  01-01-95  12:00a\n` +
+                            `       2 File(s)     74,373 bytes\n` +
+                            `       2 Dir(s)   1,234,567 bytes free`;
+                } else if (lowerCommand === 'ver') {
+                    output = 'Microsoft Windows 95 [Version 4.00.950]';
+                } else if (lowerCommand === 'cls') {
+                    // Clear screen
+                    cmdContent.innerHTML = '<div class="cmd-line"><span class="cmd-prompt">C:\\WINDOWS></span><input type="text" class="cmd-input" /></div>';
+                    cmdContent.querySelector('.cmd-input').focus();
+                    return;
+                } else if (lowerCommand === 'time') {
+                    output = `Current time is: ${new Date().toLocaleTimeString()}`;
+                } else if (lowerCommand === 'date') {
+                    output = `Current date is: ${new Date().toLocaleDateString()}`;
+                } else if (lowerCommand === 'help') {
+                    output = `Available commands:\n` +
+                            `DIR     - Lists files and directories\n` +
+                            `VER     - Displays version information\n` +
+                            `CLS     - Clears the screen\n` +
+                            `TIME    - Displays current time\n` +
+                            `DATE    - Displays current date\n` +
+                            `HELP    - Shows this help message`;
+                } else if (command) {
+                    output = `'${command}' is not recognized as an internal or external command,\noperable program or batch file.`;
+                }
+                
+                if (output) {
+                    const outputLines = output.split('\n');
+                    outputLines.forEach(line => {
+                        const lineDiv = document.createElement('div');
+                        lineDiv.className = 'cmd-line';
+                        lineDiv.textContent = line;
+                        cmdContent.appendChild(lineDiv);
+                    });
+                }
+                
+                // Add new prompt line
+                const newLine = document.createElement('div');
+                newLine.className = 'cmd-line';
+                newLine.innerHTML = '<span class="cmd-prompt">C:\\WINDOWS></span><input type="text" class="cmd-input" />';
+                cmdContent.appendChild(newLine);
+                
+                // Focus new input
+                const newInput = newLine.querySelector('.cmd-input');
+                newInput.focus();
+                
+                // Bind enter key to new input
+                newInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const cmd = newInput.value.trim();
+                        this.executeCommand(cmdContent, cmd);
+                        newInput.value = '';
+                    }
+                });
+                
+                // Scroll to bottom
+                cmdContent.scrollTop = cmdContent.scrollHeight;
+            }
+
+            addTaskbarButton(window, title, appName) {
+                const button = document.createElement('div');
+                button.className = 'taskbar-button';
+                button.textContent = title;
+                
+                button.addEventListener('click', () => {
+                    if (this.activeWindow === window) {
+                        this.minimizeWindow(window);
+                    } else {
+                        this.activateWindow(window);
+                        if (window.style.display === 'none') {
+                            window.style.display = 'block';
+                        }
+                    }
+                });
+                
+                window._taskbarButton = button;
+                document.getElementById('taskbarButtons').appendChild(button);
+            }
+
+            makeDraggable(window, handle) {
+                handle.addEventListener('mousedown', (e) => {
+                    if (e.target.classList.contains('window-control')) return;
+                    
+                    this.draggedWindow = window;
+                    this.activateWindow(window);
+                    
+                    const rect = window.getBoundingClientRect();
+                    this.dragOffset.x = e.clientX - rect.left;
+                    this.dragOffset.y = e.clientY - rect.top;
+                    
+                    e.preventDefault();
+                });
+            }
+
+            handleGlobalMouseDown(e) {
+                // Find if clicked on a window
+                const window = e.target.closest('.window');
+                if (window) {
+                    this.activateWindow(window);
+                }
+            }
+
+            handleGlobalMouseMove(e) {
+                if (this.draggedWindow) {
+                    const x = e.clientX - this.dragOffset.x;
+                    const y = e.clientY - this.dragOffset.y;
+                    
+                    // Keep window on screen
+                    const maxX = window.innerWidth - 100;
+                    const maxY = window.innerHeight - 50;
+                    
+                    this.draggedWindow.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
+                    this.draggedWindow.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
+                }
+            }
+
+            handleGlobalMouseUp() {
+                this.draggedWindow = null;
+            }
+
+            activateWindow(window) {
+                // Deactivate all windows
+                document.querySelectorAll('.window.active')
+                    .forEach(w => w.classList.remove('active'));
+                document.querySelectorAll('.taskbar-button.active')
+                    .forEach(b => b.classList.remove('active'));
+                
+                // Activate clicked window
+                window.classList.add('active');
+                window.style.zIndex = ++this.zIndex;
+                this.activeWindow = window;
+                
+                // Activate taskbar button
+                if (window._taskbarButton) {
+                    window._taskbarButton.classList.add('active');
+                }
+            }
+
+            minimizeWindow(window) {
+                window.style.display = 'none';
+                window.classList.remove('active');
+                if (window._taskbarButton) {
+                    window._taskbarButton.classList.remove('active');
+                }
+                this.activeWindow = null;
+            }
+
+            maximizeWindow(window) {
+                if (window._isMaximized) {
+                    // Restore
+                    window.style.left = window._originalPos.left;
+                    window.style.top = window._originalPos.top;
+                    window.style.width = window._originalPos.width;
+                    window.style.height = window._originalPos.height;
+                    window._isMaximized = false;
+                } else {
+                    // Maximize
+                    window._originalPos = {
+                        left: window.style.left,
+                        top: window.style.top,
+                        width: window.style.width,
+                        height: window.style.height
+                    };
+                    
+                    window.style.left = '0px';
+                    window.style.top = '0px';
+                    window.style.width = '100%';
+                    window.style.height = 'calc(100vh - 30px)';
+                    window._isMaximized = true;
+                }
+            }
+
+            closeWindow(window) {
+                const appName = Object.keys(Object.fromEntries(this.windows)).find(
+                    key => this.windows.get(key) === window
+                );
+                
+                if (appName) {
+                    this.windows.delete(appName);
+                }
+                
+                if (window._taskbarButton) {
+                    window._taskbarButton.remove();
+                }
+                
+                window.remove();
+                this.activeWindow = null;
+            }
+        }
+
+        // Initialize the system
+        document.addEventListener('DOMContentLoaded', () => {
+            new WindowManager();
+        });
+
+        // Prevent context menu
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // Prevent text selection on UI elements
+        document.addEventListener('selectstart', (e) => {
+            if (!e.target.matches('input, textarea')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
