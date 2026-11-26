@@ -1,5 +1,3 @@
-# [🚀观看我的哔哩哔哩视频](https://space.bilibili.com/3493277319825652)
-
 # Windows 95 Desktop Simulator 🖥️
 
 A high-fidelity Windows 95 desktop environment simulator built with pure HTML, CSS, and JavaScript. Experience the nostalgia of the classic 90s operating system right in your web browser!
